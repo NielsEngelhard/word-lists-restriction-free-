@@ -9,6 +9,7 @@ Currently supporting languages
 - English
 - German
 - French
+- Spanish (WIP)
 
 ## Filter
 There are two lists per language. The "raw" list and the filtered lists. Filter applies the following rules:
