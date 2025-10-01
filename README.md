@@ -1,4 +1,4 @@
-# word-lists-restriction-free-
+# Restriction Free Word Lists!
 A collection of freely available word lists in multiple languages, designed for developers, linguists, educators, hobbyists. Everybody!
 
 Can be used in any project—without restrictions.
