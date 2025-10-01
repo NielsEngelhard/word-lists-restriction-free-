@@ -1,7 +1,7 @@
 export const supportedLanguages = ["nl", "en", "de", "fr"] as const;
 
 export const MIN_WORD_LENGTH: number = 4;
-export const MAX_WORD_LENGTH: number = 12;
+export const MAX_WORD_LENGTH: number = 8;
 
 export const ALLOWED_NORMAL_CHARACTERS  = [
   "a","b","c","d","e","f","g","h","i","j","k","l","m",

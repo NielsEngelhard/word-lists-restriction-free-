@@ -5,7 +5,7 @@ import { WordFormatValidator } from './word-format-validator';
 
 const LANGUAGE_PLACEHOLDER = "{LANGUAGE_HERE}";
 const FILE_INPUT_PATH_WITH_PLACEHOLDER = `../word-lists/${LANGUAGE_PLACEHOLDER}/${LANGUAGE_PLACEHOLDER}-words-raw.txt`;
-const FILE_OUTPUT_PATH_WITH_PLACEHOLDER = `../word-lists/${LANGUAGE_PLACEHOLDER}/${LANGUAGE_PLACEHOLDER}-words-clean.txt`;
+const FILE_OUTPUT_PATH_WITH_PLACEHOLDER = `../word-lists/${LANGUAGE_PLACEHOLDER}/${LANGUAGE_PLACEHOLDER}-words-clean-4-8.txt`;
 
 // Clean a txt file with words on each row (create new file with words that are valid)
 async function cleanWordLists() {
