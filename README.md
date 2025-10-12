@@ -3,6 +3,12 @@ A collection of freely available word lists in multiple languages, designed for 
 
 Can be used in any project—without restrictions.
 
+For each language, multiple word lists are provided:
+- **RAW list** – Contains words that may not be valid.
+- **Clean list** – The RAW list filtered according to specific criteria (see the *Filter* section).
+- **Dictionary filtered** – The Clean list further filtered to include only words found in the dictionary.
+- **Dictionary + definition** – The Clean list with each word accompanied by a brief description of its meaning.
+
 ## Languages
 Currently supporting languages
 - Dutch
