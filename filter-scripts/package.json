@@ -5,7 +5,8 @@
   "main": "index.js",
   "scripts": {
     "start": "tsx clean-list-script.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "clean:dictionary": "tsx filter-dictionary.ts"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +15,8 @@
     "@types/node": "^24.6.1",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "jsdom": "^27.0.0"
   }
 }
