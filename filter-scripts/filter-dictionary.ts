@@ -4,11 +4,12 @@ import { getDictionary } from './dictionary-service/dictionary-resolver';
 import { DictionaryService } from './dictionary-service/dictionary-service';
 
 const LANGUAGE = process.argv[2];
-const BATCH_SIZE = parseInt(process.argv[3] || '50'); // Configurable batch size
 const MAX_RETRIES = 3;
+const CONCURRENCY_LIMIT = 10;
+const DELAY_BETWEEN_CHUNKS_MS = 100;
 
 if (!LANGUAGE) {
-  console.error("❌ No language provided. Usage: pnpm clean:dictionary <language> [batch_size]");
+  console.error("❌ No language provided. Usage: pnpm clean:dictionary <language>");
   process.exit(1);
 }
 
@@ -19,7 +20,7 @@ const FILE_OUTPUT_PATH_WITH_DEFINITIONS_WITH_PLACEHOLDER = `../word-lists/${LANG
 
 async function cleanWordListsByDictionary() {
   console.log(`START cleaning word lists by dictionary - ${LANGUAGE}`);
-  console.log(`🧼🫧🧺🧽🧹 dictionary check word list for '${LANGUAGE}' (batch size: ${BATCH_SIZE})`);
+  console.log(`🧼🫧🧺🧽🧹 dictionary check word list for '${LANGUAGE}' (concurrency: ${CONCURRENCY_LIMIT})`);
 
   const FILE_INPUT_PATH = FILE_INPUT_PATH_WITH_PLACEHOLDER.replaceAll(LANGUAGE_PLACEHOLDER, LANGUAGE);
   const FILE_OUTPUT_PATH_WORDS = FILE_OUTPUT_PATH_WORDS_WITH_PLACEHOLDER.replaceAll(LANGUAGE_PLACEHOLDER, LANGUAGE);
@@ -50,17 +51,21 @@ async function cleanWordList(
     
     const words: string[] = [];
     const wordsAndDefinitions: string[] = [];
-    let batch: string[] = [];
+    let chunk: string[] = [];
     let totalProcessed = 0;
     let validCount = 0;
     
-    console.log('📖 Reading words...');
+    console.log('📖 Reading and processing words...');
     
     for await (const line of rl) {
-      batch.push(line.trim());
+      const word = line.trim();
+      if (!word) continue;
       
-      if (batch.length >= BATCH_SIZE) {
-        const results = await processBatch(batch, dictionary);
+      chunk.push(word);
+      
+      // Process when we have CONCURRENCY_LIMIT words
+      if (chunk.length === CONCURRENCY_LIMIT) {
+        const results = await processChunk(chunk, dictionary);
         
         for (const result of results) {
           if (result.valid) {
@@ -70,16 +75,17 @@ async function cleanWordList(
           }
         }
         
-        totalProcessed += batch.length;
+        totalProcessed += chunk.length;
         console.log(`✓ Processed ${totalProcessed} words (${validCount} valid)`);
         
-        batch = [];
+        chunk = [];
+        await new Promise(resolve => setTimeout(resolve, DELAY_BETWEEN_CHUNKS_MS));
       }
     }
     
     // Process remaining words
-    if (batch.length > 0) {
-      const results = await processBatch(batch, dictionary);
+    if (chunk.length > 0) {
+      const results = await processChunk(chunk, dictionary);
       
       for (const result of results) {
         if (result.valid) {
@@ -89,7 +95,7 @@ async function cleanWordList(
         }
       }
       
-      totalProcessed += batch.length;
+      totalProcessed += chunk.length;
     }
     
     console.log(`\n📊 Final stats: ${validCount}/${totalProcessed} valid words`);
@@ -97,20 +103,18 @@ async function cleanWordList(
     fs.writeFileSync(outputWordsPath, words.join('\n'));
     fs.writeFileSync(outputDefinitionsPath, wordsAndDefinitions.join('\n'));
     
-    console.log(`Processing complete for language: ${LANGUAGE}`);
+    console.log(`✅ Processing complete for language: ${LANGUAGE}`);
   } catch (error) {
-    console.error('Error processing file:', error);
+    console.error('❌ Error processing file:', error);
+    throw error;
   }
 }
 
-async function processBatch(
-  batch: string[],
+async function processChunk(
+  chunk: string[],
   dictionary: DictionaryService
 ): Promise<Array<{ word: string; valid: boolean; definition?: string }>> {
-  const promises = batch.map(word => 
-    validateWordWithRetry(word, dictionary)
-  );
-  
+  const promises = chunk.map(word => validateWordWithRetry(word, dictionary));
   return await Promise.all(promises);
 }
 
@@ -133,7 +137,7 @@ async function validateWordWithRetry(
         return { word, valid: false };
       }
       
-      // Exponential backoff
+      // Exponential backoff: 100ms, 200ms, 400ms
       await new Promise(resolve => setTimeout(resolve, Math.pow(2, attempt) * 100));
     }
   }

@@ -1,100 +1,61 @@
-// dictionary-de.ts
+// dictionary-en.ts
 import { DictionaryService, DictionaryResponse } from "../dictionary-service";
-import { JSDOM } from "jsdom";
 
 export const dictionaryDe: DictionaryService = {
   async validateWord(word: string): Promise<DictionaryResponse> {
     try {
       return await fetchDefinition(word);
-    } catch (error) {
-      console.error("Error fetching German definition:", error);
+    } catch {
       return DictionaryResponse.error();
     }
   },
 };
 
+export interface ISense {
+  definition?: string;
+}
+
+export interface IResult {
+  senses?: ISense[];
+}
+
+export interface FrenchDictResp {
+  word: string;
+  entries: IResult[];
+}
+
 /**
- * Fetches and extracts the definition from DWDS
+ * Fetches and extracts the summarized definition
  */
 export async function fetchDefinition(word: string): Promise<DictionaryResponse> {
-  const response = await fetch(`https://www.dwds.de/wb/${word}`);
-  
-  if (!response.ok) {
+  const response = await fetch(
+    `https://freedictionaryapi.com/api/v1/entries/de/${word.toLowerCase()}`
+  );
+
+  if (response.status != 200) {
     return DictionaryResponse.error();
   }
 
-  const html = await response.text();
-  const definition = extractDefinitionFromHtml(html);
+  const json = (await response.json()) as FrenchDictResp;
+  if (!json) return DictionaryResponse.error();
 
-  if (!definition) {
-    return DictionaryResponse.error();
-  }
+  if (json.entries.length < 1) return DictionaryResponse.error();
+  if (json.entries[0]!.senses!.length < 1) return DictionaryResponse.error();
 
-  return DictionaryResponse.ok(word, definition);
+  const definition = json.entries[0]!.senses![0].definition;
+
+  return DictionaryResponse.ok(word.toUpperCase(), definition);
 }
 
 /**
- * Extracts the main definition from DWDS HTML page
- */
-function extractDefinitionFromHtml(html: string): string | null {
-  try {
-    const dom = new JSDOM(html);
-    const document = dom.window.document;
-
-    // Try to find the main definition in the dwdswb-definition span
-    const definitionElement = document.querySelector('.dwdswb-definition');
-    
-    if (definitionElement) {
-      // Remove any nested elements we don't want (like references)
-      const cloned = definitionElement.cloneNode(true) as Element;
-      
-      // Remove popovers and links, keeping only the text
-      const unwantedSelectors = ['.dwdswb-verweis', 'a.intern'];
-      unwantedSelectors.forEach(selector => {
-        cloned.querySelectorAll(selector).forEach(el => {
-          if (el.textContent) {
-            el.replaceWith(dom.window.document.createTextNode(el.textContent));
-          }
-        });
-      });
-
-      const text = cloned.textContent?.trim();
-      
-      if (text) {
-        return summarizeDefinition(text);
-      }
-    }
-
-    // Fallback: try to find any definition text
-    const altDefinition = document.querySelector('.dwdswb-lesart-def');
-    if (altDefinition) {
-      const text = altDefinition.textContent?.trim();
-      if (text) {
-        return summarizeDefinition(text);
-      }
-    }
-
-    return null;
-  } catch (error) {
-    console.error("Error parsing German HTML:", error);
-    return null;
-  }
-}
-
-/**
- * Summarizes definition to a reasonable length
+ * Summarizes text to the first x words
  */
 function summarizeDefinition(text: string): string {
-  const maxWords = 16;
-  
-  // Clean up extra whitespace
-  const cleanText = text.replace(/\s+/g, ' ').trim();
-  
-  const words = cleanText.split(/\s+/).filter(Boolean);
-  
-  if (words.length <= maxWords) {
-    return cleanText;
+  const nWords = 16;
+
+  const words = text.split(/\s+/).filter(Boolean);
+  if (words.length <= nWords) {
+    return words.join(" ");
   }
-  
-  return words.slice(0, maxWords).join(" ") + "...";
+  return words.slice(0, nWords).join(" ") + "...";
 }
